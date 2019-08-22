@@ -10,8 +10,8 @@ import SoftLayer
 # In[217]:
 
 
-USERNAME = 'IBM1955198'
-API_KEY = '84646e2c3addbaeced7619471eac6d0032333bcf39fb710c3a92f56ec156efcb'
+USERNAME = 'XXX'
+API_KEY = 'XXXXX'
 
 
 # In[285]:
