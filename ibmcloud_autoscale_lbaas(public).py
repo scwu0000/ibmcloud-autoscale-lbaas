@@ -1,20 +1,26 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[2]:
+
+
+pip install softlayer
+
+
+# In[3]:
 
 
 import SoftLayer
 
 
-# In[2]:
+# In[4]:
 
 
 USERNAME = 'XXX'
 API_KEY = 'XXXXX'
 
 
-# In[3]:
+# In[7]:
 
 
 ###API Test, please ignore
@@ -27,14 +33,16 @@ objectMask1 = "mask[id, hostname, domain, datacenter[longName], billingItem[recu
 
 try:
     # Retrieve the bare metal servers for the account.
-    result1 = accountService.getHardware(mask=objectMask1)
+    # result1 = accountService.getHardware(mask=objectMask1)
+    # Retrieve the virtual servers for the account.
+    result1 = accountService.getVirtualGuests(mask=objectMask1)
     print(result1)
 except SoftLayer.SoftLayerAPIError as e:
     print("Unable to retrieve the servers. " % (e.faultCode, e.faultString))
     exit(1)
 
 
-# In[5]:
+# In[8]:
 
 
 ###retrieve Data Center name
@@ -54,7 +62,7 @@ except SoftLayer.SoftLayerAPIError as e:
     exit(1)
 
 
-# In[6]:
+# In[9]:
 
 
 ###retrieve uuid of LBaaS
@@ -64,7 +72,6 @@ objectMask3 = "mask[uuid]"
 #objectMask1 = "mask[address, name, operatingStatus, provisioningStatus, datacenter[longName]]"
 try:
     # Retrieve the bare metal servers for the account.
-    # result = accountService.getLoadBalancer('d6ea0f93-4c57-48c5-9569-f8be37597f75')
     result3 = accountService.getAllObjects(mask=objectMask3)
     print(result3)
     for i in result3:
@@ -75,7 +82,7 @@ except SoftLayer.SoftLayerAPIError as e:
     exit(1)
 
 
-# In[7]:
+# In[10]:
 
 
 ###retrieve uuid of LBaaS's members
@@ -84,7 +91,6 @@ accountService = client['SoftLayer_Network_LBaaS_LoadBalancer']
 #objectMask1 = "mask[address, name, operatingStatus, provisioningStatus, datacenter[longName]]"
 try:
     # Retrieve the bare metal servers for the account.
-    # result = accountService.getLoadBalancerMemberHealth('d6ea0f93-4c57-48c5-9569-f8be37597f75')
     result4 = accountService.getLoadBalancerMemberHealth(uuid)
     print(result4)
     for a in result4:
@@ -101,7 +107,7 @@ except SoftLayer.SoftLayerAPIError as e:
     exit(1)
 
 
-# In[19]:
+# In[12]:
 
 
 from prettytable import PrettyTable
@@ -118,8 +124,8 @@ statusTable = PrettyTable(['Instances Up','Instances Down'])
 metricsTable = PrettyTable(['Throughput (bps)','Data Processed (MB)', 'Conection Rate (cps)', 'Active Connections'])
 healthTable = PrettyTable(['Front-End Protocol','Front-End Port', 'Back-End Protocol', 'Back-End Port', 'Is Healthy'])
 
-members = client['Network_LBaaS_LoadBalancer'].getLoadBalancerMemberHealth('d6ea0f93-4c57-48c5-9569-f8be37597f75')
-statics = client['Network_LBaaS_LoadBalancer'].getLoadBalancerStatistics('d6ea0f93-4c57-48c5-9569-f8be37597f75')
+members = client['Network_LBaaS_LoadBalancer'].getLoadBalancerMemberHealth(uuid)
+statics = client['Network_LBaaS_LoadBalancer'].getLoadBalancerStatistics(uuid)
 statusTable.add_row([statics['numberOfMembersUp'], statics['numberOfMembersDown']])
 metricsTable.add_row([statics['throughput'], convertToMB(statics['dataProcessedByMonth']), statics['connectionRate'], statics['totalConnections']])
 print(statics)
@@ -139,7 +145,7 @@ print (metricsTable)
 print (healthTable)
 
 
-# In[29]:
+# In[22]:
 
 
 guestFilter = {"virtualGuests":{"datacenter":{"name":{"operation": dc}}}}
@@ -160,7 +166,7 @@ except SoftLayer.SoftLayerAPIError as e:
     exit(1)
 
 
-# In[31]:
+# In[23]:
 
 
 instancesTable = PrettyTable(['Id','Name','Type','Private Ip'])
@@ -170,9 +176,10 @@ for g in guests1:
 print(instancesTable)
 
 
-# In[32]:
+# In[24]:
 
 
+#Get quantity of LBaaS member
 mask = "mask[members]"
 try:
     result4 = client['Network_LBaaS_LoadBalancer'].getLoadBalancer(uuid, mask=mask)
@@ -192,9 +199,10 @@ except SoftLayer.SoftLayerAPIError as e:
     exit(1)
 
 
-# In[33]:
+# In[25]:
 
 
+#Get autoscale group id
 import json
 client = SoftLayer.Client(username=USERNAME, api_key=API_KEY)
 #scaleGroupService = client['SoftLayer_Scale_Group']
@@ -218,9 +226,10 @@ autoscale_id = item['id']
 print(autoscale_id)
 
 
-# In[34]:
+# In[26]:
 
 
+# Get quantity of autoscale group member
 import SoftLayer
 import json
 
@@ -272,9 +281,11 @@ except SoftLayer.SoftLayerAPIError as e:
     print("Unable to get the scale group details. faultCode=%s, faultString=%s" % (e.faultCode, e.faultString))
 
 
-# In[35]:
+# In[27]:
 
 
+#Compare 2 members' quantity
+#Option1: autoscale group quantity < LBaas member quantity
 client = SoftLayer.Client(username=USERNAME, api_key=API_KEY)
 mask = "mask[members]"
 
@@ -312,9 +323,11 @@ if ascount3 < lbcount2:
         exit(1)
 
 
-# In[36]:
+# In[28]:
 
 
+#Compare 2 members' quantity
+#Option2: autoscale group quantity > LBaas member quantity
 if ascount3 > lbcount2:
 #remove ip from LB
     print('ascount3:'+str(ascount3))
@@ -344,9 +357,11 @@ if ascount3 > lbcount2:
         exit(1)
 
 
-# In[37]:
+# In[29]:
 
 
+#Compare 2 members' quantity
+#Option3: autoscale group quantity = LBaas member quantity
 if ascount3 == lbcount2:
 #nothing to do
     print('ascount3:'+str(ascount3))
